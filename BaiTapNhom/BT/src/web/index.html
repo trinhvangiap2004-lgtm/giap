@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cửa hàng Quần Áo</title>
+<style>
+  /* --- cơ bản --- */
+  :root{ --primary:#3f51b5; --accent:#2196F3; --danger:#f44336; --green:#4CAF50; }
+  body{ font-family: Arial, sans-serif; margin:0; background:#f5f5f5; color:#222; }
+  header{ background:var(--primary); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:12px; justify-content:space-between; }
+  header h1{ margin:0; font-size:22px; }
+  .controls{ padding:14px; background:#fff; display:flex; gap:10px; align-items:center; flex-wrap:wrap; border-bottom:1px solid #eee; }
+  .controls input, .controls select { padding:8px; border:1px solid #ddd; border-radius:4px; }
+  .controls button{ padding:8px 10px; border-radius:4px; border:none; cursor:pointer; background:var(--primary); color:#fff; }
+  #main{ display:flex; gap:20px; padding:20px; }
+  #products{ flex:1; display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:20px; }
+  .product{ background:#fff; padding:12px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.06); display:flex; flex-direction:column; }
+  .product img{ width:100%; height:230px; object-fit:cover; border-radius:6px; }
+  .product h3{ margin:10px 0 6px; font-size:17px; }
+  .product p.price{ margin:0 0 10px; font-weight:700; color:var(--primary); }
+  .product .meta{ font-size:13px; color:#666; margin-bottom:8px; }
+  .product .actions{ margin-top:auto; display:flex; gap:8px; }
+  .product button{ flex:1; padding:8px; border-radius:6px; cursor:pointer; border:none; }
+  .btn-add{ background:var(--primary); color:#fff; }
+  .btn-details{ background:#eee; }
+
+  /* giỏ hàng */
+  #cart{ width:320px; background:#fff; padding:16px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.08); height:calc(100vh - 120px); overflow:auto; position:sticky; top:20px; }
+  #cart h2{ margin-top:0; }
+  #cart ul{ list-style:none; padding:0; margin:0; }
+  #cart li{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed #eee; }
+  #cart .qty{ display:flex; gap:6px; align-items:center; }
+  #cart button{ cursor:pointer; border:none; padding:6px 8px; border-radius:4px; }
+  #checkout{ margin-top:10px; background:var(--green); color:#fff; width:100%; padding:10px; border:none; border-radius:6px; cursor:pointer; font-weight:700; }
+
+  /* chat */
+  #chat{ position:fixed; bottom:10px; right:10px; width:320px; background:#fff; padding:10px; box-shadow:0 6px 18px rgba(0,0,0,0.12); border-radius:8px; }
+  #chatMessages{ max-height:160px; overflow-y:auto; border:1px solid #eee; padding:8px; font-size:14px; margin-bottom:8px; border-radius:6px; background:#fafafa; }
+  #chat input{ width:66%; padding:8px; border:1px solid #ddd; border-radius:4px; }
+  #chat button{ width:30%; padding:8px; border-radius:4px; border:none; background:var(--accent); color:#fff; cursor:pointer; }
+
+  /* modals */
+  .modal{ display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:18px; box-shadow:0 8px 30px rgba(0,0,0,0.15); border-radius:8px; z-index:50; width:420px; max-width:95%; }
+  .modal h3{ margin-top:0; }
+  .modal input, .modal select { width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:4px; }
+  .modal .row{ display:flex; gap:8px; }
+  .modal .row button{ flex:1; }
+
+  /* admin list small */
+  #adminList{ max-height:180px; overflow:auto; padding:0; margin:8px 0 0 0; list-style:none; }
+  #adminList li{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; font-size:14px; }
+
+  /* responsive */
+  @media (max-width:900px){
+    #main{ flex-direction:column; }
+    #cart{ width:100%; position:static; height:auto; }
+    #chat{ right:10px; width:300px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <h1>Cửa hàng Quần Áo</h1>
+    <div style="font-size:13px; opacity:0.9">27+ sản phẩm demo</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <div id="userArea" style="font-size:14px;"></div>
+    <button id="openLoginBtn">Đăng nhập</button>
+    <button id="openAdminBtn">Admin</button>
+  </div>
+</header>
+
+<!-- controls -->
+<div class="controls">
+  <input id="searchInput" type="text" placeholder="Tìm sản phẩm..." />
+  <select id="filterType">
+    <option value="">Tất cả loại</option>
+    <option value="ao">Áo</option>
+    <option value="quan">Quần</option>
+    <option value="vay">Váy</option>
+    <option value="set">Set</option>
+    <option value="vest">Vest</option>
+  </select>
+
+  <select id="filterPrice">
+    <option value="">Tất cả giá</option>
+    <option value="1">Dưới 200.000</option>
+    <option value="2">200.000 - 400.000</option>
+    <option value="3">Trên 400.000</option>
+  </select>
+
+  <select id="filterGender">
+    <option value="">Tất cả giới tính</option>
+    <option value="nam">Nam</option>
+    <option value="nu">Nữ</option>
+    <option value="unisex">Unisex</option>
+  </select>
+
+  <button id="resetFilters">Reset</button>
+
+  <div style="margin-left:auto; display:flex; gap:8px;">
+    <button id="saveProductsBtn" title="Lưu sản phẩm hiện tại vào localStorage">Lưu sản phẩm</button>
+    <button id="clearStorageBtn" title="Xóa giỏ hàng và dữ liệu tạm">Xóa Lưu Trữ</button>
+  </div>
+</div>
+
+<!-- main -->
+<div id="main">
+  <div id="products"></div>
+
+  <div id="cart">
+    <h2>Giỏ hàng</h2>
+    <ul id="cartItems"></ul>
+    <p style="font-weight:700">Tổng: <span id="total">0</span> đ</p>
+    <button id="checkout">Thanh toán</button>
+  </div>
+</div>
+
+<!-- chat -->
+<div id="chat">
+  <div id="chatMessages"></div>
+  <input id="chatInput" placeholder="Nhập tin nhắn..."/>
+  <button id="sendChat">Gửi</button>
+</div>
+
+<!-- LOGIN modal -->
+<div id="loginModal" class="modal">
+  <h3>Đăng nhập / Đăng ký</h3>
+  <input id="loginUser" placeholder="Tên đăng nhập" />
+  <input id="loginPass" placeholder="Mật khẩu" type="password" />
+  <div class="row">
+    <button id="btnLogin">Đăng nhập</button>
+    <button id="btnRegister">Đăng ký</button>
+  </div>
+  <div style="text-align:right; margin-top:8px;">
+    <button id="closeLogin">Đóng</button>
+  </div>
+</div>
+
+<!-- ADMIN modal -->
+<div id="adminModal" class="modal">
+  <h3>Admin - Quản lý sản phẩm</h3>
+  <input id="prodName" placeholder="Tên sản phẩm (ví dụ: Áo thun nam trắng)" />
+  <input id="prodPrice" type="number" placeholder="Giá (ví dụ: 150000)" />
+  <input id="prodImg" placeholder="Link ảnh (hoặc để trống dùng ảnh mặc định)" />
+  <select id="prodType">
+    <option value="ao">Áo</option>
+    <option value="quan">Quần</option>
+    <option value="vay">Váy</option>
+    <option value="set">Set</option>
+    <option value="vest">Vest</option>
+  </select>
+  <select id="prodGender">
+    <option value="nam">Nam</option>
+    <option value="nu">Nữ</option>
+    <option value="unisex">Unisex</option>
+  </select>
+  <div class="row" style="margin-top:8px;">
+    <button id="btnAddProd">Thêm / Cập nhật</button>
+    <button id="btnCloseAdmin">Đóng</button>
+  </div>
+
+  <h4>Danh sách sản phẩm</h4>
+  <ul id="adminList"></ul>
+</div>
+
+<script>
+/* ---------------- DATA: danh sách sản phẩm mẫu (có type, gender) ---------------- */
+const defaultProducts = [
+  {id:'c1', name:'Áo thun nam trắng', price:150000, img:'https://via.placeholder.com/600x800?text=Ao+Thun+Nam', type:'ao', gender:'nam'},
+  {id:'c2', name:'Áo thun nữ form rộng', price:160000, img:'https://via.placeholder.com/600x800?text=Ao+Thun+Nu', type:'ao', gender:'nu'},
+  {id:'c3', name:'Áo sơ mi nam', price:250000, img:'https://via.placeholder.com/600x800?text=So+Mi+Nam', type:'ao', gender:'nam'},
+  {id:'c4', name:'Áo sơ mi nữ', price:240000, img:'https://via.placeholder.com/600x800?text=So+Mi+Nu', type:'ao', gender:'nu'},
+  {id:'c5', name:'Áo hoodie nam', price:350000, img:'https://via.placeholder.com/600x800?text=Hoodie+Nam', type:'ao', gender:'nam'},
+  {id:'c6', name:'Áo hoodie nữ', price:340000, img:'https://via.placeholder.com/600x800?text=Hoodie+Nu', type:'ao', gender:'nu'},
+  {id:'c7', name:'Áo khoác jean nam', price:420000, img:'https://via.placeholder.com/600x800?text=Jean+Nam', type:'ao', gender:'nam'},
+  {id:'c8', name:'Áo khoác jean nữ', price:410000, img:'https://via.placeholder.com/600x800?text=Jean+Nu', type:'ao', gender:'nu'},
+  {id:'c9', name:'Áo len nữ', price:320000, img:'https://via.placeholder.com/600x800?text=Ao+Len+Nu', type:'ao', gender:'nu'},
+  {id:'c10', name:'Quần jean nam', price:300000, img:'https://via.placeholder.com/600x800?text=Quan+Jean+Nam', type:'quan', gender:'nam'},
+  {id:'c11', name:'Quần jean nữ', price:290000, img:'https://via.placeholder.com/600x800?text=Quan+Jean+Nu', type:'quan', gender:'nu'},
+  {id:'c12', name:'Quần short nam', price:180000, img:'https://via.placeholder.com/600x800?text=Short+Nam', type:'quan', gender:'nam'},
+  {id:'c13', name:'Quần short nữ', price:170000, img:'https://via.placeholder.com/600x800?text=Short+Nu', type:'quan', gender:'nu'},
+  {id:'c14', name:'Quần tây nam', price:350000, img:'https://via.placeholder.com/600x800?text=Quan+Tay+Nam', type:'quan', gender:'nam'},
+  {id:'c15', name:'Quần kaki nữ', price:330000, img:'https://via.placeholder.com/600x800?text=Kaki+Nu', type:'quan', gender:'nu'},
+  {id:'c16', name:'Váy ôm sang trọng', price:400000, img:'https://via.placeholder.com/600x800?text=Vay+Om', type:'vay', gender:'nu'},
+  {id:'c17', name:'Váy xòe dễ thương', price:380000, img:'https://via.placeholder.com/600x800?text=Vay+Xoe', type:'vay', gender:'nu'},
+  {id:'c18', name:'Set đồ nữ cá tính', price:450000, img:'https://via.placeholder.com/600x800?text=Set+Nu', type:'set', gender:'nu'},
+  {id:'c19', name:'Vest nam cao cấp', price:850000, img:'https://via.placeholder.com/600x800?text=Vest+Nam', type:'vest', gender:'nam'},
+  {id:'c20', name:'Đầm dự tiệc sang trọng', price:520000, img:'https://via.placeholder.com/600x800?text=Dress', type:'vay', gender:'nu'},
+  {id:'c21', name:'Áo croptop nữ', price:160000, img:'https://via.placeholder.com/600x800?text=Croptop', type:'ao', gender:'nu'},
+  {id:'c22', name:'Áo khoác gió nam', price:370000, img:'https://via.placeholder.com/600x800?text=Khoac+Gio', type:'ao', gender:'nam'},
+  {id:'c23', name:'Áo khoác gió nữ', price:360000, img:'https://via.placeholder.com/600x800?text=Khoac+Gio+Nu', type:'ao', gender:'nu'},
+  {id:'c24', name:'Áo ba lỗ thể thao nam', price:120000, img:'https://via.placeholder.com/600x800?text=Ba+Lo+Nam', type:'ao', gender:'nam'},
+  {id:'c25', name:'Áo thể thao nữ', price:130000, img:'https://via.placeholder.com/600x800?text=Ao+The+Thao+Nu', type:'ao', gender:'nu'},
+  {id:'c26', name:'Váy maxi đi biển', price:450000, img:'https://via.placeholder.com/600x800?text=Vay+Maxi', type:'vay', gender:'nu'},
+  {id:'c27', name:'Quần jogger nam', price:210000, img:'https://via.placeholder.com/600x800?text=Jogger+Nam', type:'quan', gender:'nam'}
+];
+
+// load products from localStorage nếu có, ngược lại dùng default
+let products = JSON.parse(localStorage.getItem('products_v1')) || defaultProducts.slice();
+
+/* ---------------- CART & USER ---------------- */
+let cart = JSON.parse(localStorage.getItem('cart_v1')) || [];
+let currentUser = localStorage.getItem('session_user') || null;
+
+/* --- DOM refs --- */
+const productsDiv = document.getElementById('products');
+const totalEl = document.getElementById('total');
+const cartItemsEl = document.getElementById('cartItems');
+const userArea = document.getElementById('userArea');
+
+/* ---------------- RENDER PRODUCTS ---------------- */
+function renderProducts(list){
+  productsDiv.innerHTML = '';
+  list.forEach(p=>{
+    const div = document.createElement('div');
+    div.className = 'product';
+    div.innerHTML = `
+      <img src="${p.img || 'https://via.placeholder.com/600x800?text=No+Image'}" alt="${escapeHtml(p.name)}">
+      <h3>${escapeHtml(p.name)}</h3>
+      <div class="meta">Loại: ${p.type} • Giới tính: ${p.gender}</div>
+      <p class="price">${p.price.toLocaleString()} đ</p>
+      <div class="actions">
+        <button class="btn-add">Thêm vào giỏ</button>
+        <button class="btn-details">Chi tiết</button>
+      </div>
+    `;
+    div.querySelector('.btn-add').onclick = ()=> addToCart(p);
+    // chi tiết hiện alert tạm
+    div.querySelector('.btn-details').onclick = ()=> alert(`${p.name}\nGiá: ${p.price.toLocaleString()} đ\nLoại: ${p.type}\nGiới tính: ${p.gender}`);
+    productsDiv.appendChild(div);
+  });
+}
+renderProducts(products);
+
+/* ---------------- SEARCH & FILTER ---------------- */
+const searchInput = document.getElementById('searchInput');
+const filterType = document.getElementById('filterType');
+const filterPrice = document.getElementById('filterPrice');
+const filterGender = document.getElementById('filterGender');
+
+function applyFilters(){
+  const key = (searchInput.value || '').trim().toLowerCase();
+  const type = filterType.value;
+  const price = filterPrice.value;
+  const gender = filterGender.value;
+
+  let filtered = products.filter(p=>{
+    let ok = true;
+    if(key && !p.name.toLowerCase().includes(key)) ok = false;
+    if(type && p.type !== type) ok = false;
+    if(gender && p.gender !== gender) ok = false;
+    if(price==='1' && p.price > 200000) ok = false;
+    if(price==='2' && (p.price < 200000 || p.price > 400000)) ok = false;
+    if(price==='3' && p.price < 400000) ok = false;
+    return ok;
+  });
+
+  renderProducts(filtered);
+}
+
+searchInput.addEventListener('input', applyFilters);
+filterType.addEventListener('change', applyFilters);
+filterPrice.addEventListener('change', applyFilters);
+filterGender.addEventListener('change', applyFilters);
+document.getElementById('resetFilters').addEventListener('click', ()=>{
+  searchInput.value=''; filterType.value=''; filterPrice.value=''; filterGender.value='';
+  applyFilters();
+});
+
+/* ---------------- CART FUNCTIONS ---------------- */
+function saveCart(){
+  localStorage.setItem('cart_v1', JSON.stringify(cart));
+}
+function loadCart(){
+  cart = JSON.parse(localStorage.getItem('cart_v1')) || [];
+}
+loadCart();
+
+function addToCart(product){
+  const exist = cart.find(i=>i.id===product.id);
+  if(exist) exist.qty++;
+  else cart.push({id:product.id, name:product.name, price:product.price, qty:1});
+  renderCart();
+  saveCart();
+}
+
+function removeFromCart(id){
+  cart = cart.filter(i=>i.id!==id);
+  renderCart();
+  saveCart();
+}
+
+function changeQty(id, delta){
+  const it = cart.find(i=>i.id===id);
+  if(!it) return;
+  it.qty += delta;
+  if(it.qty < 1) it.qty = 1;
+  renderCart();
+  saveCart();
+}
+
+function renderCart(){
+  cartItemsEl.innerHTML = '';
+  let total = 0;
+  cart.forEach(item=>{
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div style="flex:1;">
+        <div style="font-weight:600">${escapeHtml(item.name)}</div>
+        <div style="font-size:13px; color:#666;">${item.price.toLocaleString()} đ x ${item.qty}</div>
+      </div>
+      <div class="qty">
+        <button style="background:#eee" onclick="changeQty('${item.id}', -1)">-</button>
+        <div style="min-width:22px; text-align:center;">${item.qty}</div>
+        <button style="background:#eee" onclick="changeQty('${item.id}', 1)">+</button>
+        <button style="background:var(--danger); color:#fff;" onclick="removeFromCart('${item.id}')">X</button>
+      </div>
+    `;
+    cartItemsEl.appendChild(li);
+    total += item.price * item.qty;
+  });
+  totalEl.innerText = total.toLocaleString();
+}
+renderCart();
+
+/* checkout */
+document.getElementById('checkout').onclick = ()=>{
+  if(cart.length === 0) return alert('Giỏ hàng trống');
+  if(!currentUser) {
+    if(!confirm('Bạn chưa đăng nhập. Muốn thanh toán với tài khoản khách?')) return;
+  }
+  // POST tới backend (nếu có)
+  fetch('http://localhost:8080/checkout', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user: currentUser || 'guest', cart })
+  }).then(res=>{
+    if(res.ok){
+      alert('Thanh toán thành công (demo).');
+      cart = []; saveCart(); renderCart();
+    } else {
+      alert('Thanh toán không thành công (server trả lỗi).');
+    }
+  }).catch(err=>{
+    // nếu không có server, vẫn coi là thành công demo
+    console.warn(err);
+    alert('Không thể kết nối server -> Xem như demo: Thanh toán thành công (không thực).');
+    cart = []; saveCart(); renderCart();
+  });
+};
+
+/* ---------------- LOGIN/REGISTER ---------------- */
+const loginModal = document.getElementById('loginModal');
+const loginUser = document.getElementById('loginUser');
+const loginPass = document.getElementById('loginPass');
+
+document.getElementById('openLoginBtn').onclick = ()=> openLogin();
+document.getElementById('closeLogin').onclick = ()=> closeLogin();
+
+document.getElementById('btnRegister').onclick = ()=>{
+  const u = (loginUser.value||'').trim();
+  const p = (loginPass.value||'').trim();
+  if(!u || !p) return alert('Nhập đầy đủ tên & mật khẩu');
+  if(localStorage.getItem('user_'+u)) return alert('Tài khoản đã tồn tại');
+  localStorage.setItem('user_'+u, JSON.stringify({ password:p }));
+  alert('Đăng ký thành công. Bạn có thể đăng nhập.');
+};
+
+document.getElementById('btnLogin').onclick = ()=>{
+  const u = (loginUser.value||'').trim();
+  const p = (loginPass.value||'').trim();
+  const data = localStorage.getItem('user_'+u);
+  if(!data) return alert('Tài khoản không tồn tại');
+  const parsed = JSON.parse(data);
+  if(parsed.password !== p) return alert('Sai mật khẩu');
+  currentUser = u;
+  localStorage.setItem('session_user', currentUser);
+  updateUserArea();
+  alert('Đăng nhập thành công: ' + currentUser);
+  closeLogin();
+};
+
+function openLogin(){
+  loginUser.value=''; loginPass.value='';
+  loginModal.style.display = 'block';
+}
+function closeLogin(){ loginModal.style.display = 'none'; }
+
+/* ---------------- USER AREA ---------------- */
+function updateUserArea(){
+  if(currentUser){
+    userArea.innerHTML = `Xin chào <b>${escapeHtml(currentUser)}</b> <button id="logoutBtn" style="margin-left:8px;">Đăng xuất</button>`;
+    document.getElementById('logoutBtn').onclick = ()=>{ localStorage.removeItem('session_user'); currentUser=null; updateUserArea(); };
+  } else {
+    userArea.innerHTML = '';
+  }
+}
+updateUserArea();
+
+/* ---------------- ADMIN modal ---------------- */
+const adminModal = document.getElementById('adminModal');
+document.getElementById('openAdminBtn').onclick = ()=> { adminModal.style.display='block'; loadAdminList(); };
+document.getElementById('btnCloseAdmin').onclick = ()=> adminModal.style.display='none';
+
+const prodName = document.getElementById('prodName');
+const prodPrice = document.getElementById('prodPrice');
+const prodImg = document.getElementById('prodImg');
+const prodType = document.getElementById('prodType');
+const prodGender = document.getElementById('prodGender');
+
+let editId = null;
+
+document.getElementById('btnAddProd').onclick = ()=>{
+  const name = (prodName.value||'').trim();
+  const price = Number(prodPrice.value || 0);
+  if(!name || !price) return alert('Nhập tên và giá hợp lệ');
+  const img = prodImg.value || 'https://via.placeholder.com/600x800?text=No+Image';
+  const type = prodType.value;
+  const gender = prodGender.value;
+  if(editId){
+    // update
+    const idx = products.findIndex(p=>p.id===editId);
+    if(idx>-1){
+      products[idx].name = name;
+      products[idx].price = price;
+      products[idx].img = img;
+      products[idx].type = type;
+      products[idx].gender = gender;
+      editId = null;
+    }
+  } else {
+    products.push({ id: 'p'+Date.now(), name, price, img, type, gender });
+  }
+  saveProducts();
+  renderProducts(products);
+  loadAdminList();
+  prodName.value=''; prodPrice.value=''; prodImg.value='';
+};
+
+function loadAdminList(){
+  const ul = document.getElementById('adminList');
+  ul.innerHTML = '';
+  products.forEach(p=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<div style="flex:1">${escapeHtml(p.name)} - ${p.price.toLocaleString()} đ</div>
+      <div style="display:flex; gap:6px;">
+        <button onclick="editProduct('${p.id}')">Sửa</button>
+        <button onclick="deleteProduct('${p.id}')">Xóa</button>
+      </div>`;
+    ul.appendChild(li);
+  });
+}
+window.editProduct = function(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  prodName.value = p.name;
+  prodPrice.value = p.price;
+  prodImg.value = p.img;
+  prodType.value = p.type || 'ao';
+  prodGender.value = p.gender || 'unisex';
+  editId = id;
+  adminModal.style.display='block';
+};
+window.deleteProduct = function(id){
+  if(!confirm('Xóa sản phẩm này?')) return;
+  products = products.filter(p=>p.id!==id);
+  saveProducts();
+  renderProducts(products);
+  loadAdminList();
+};
+
+/* save products to localStorage */
+function saveProducts(){
+  localStorage.setItem('products_v1', JSON.stringify(products));
+}
+document.getElementById('saveProductsBtn').onclick = ()=>{
+  saveProducts();
+  alert('Đã lưu sản phẩm vào localStorage.');
+};
+
+/* clear storage */
+document.getElementById('clearStorageBtn').onclick = ()=>{
+  if(!confirm('Xóa toàn bộ cart, products (về default) và session?')) return;
+  localStorage.removeItem('cart_v1');
+  localStorage.removeItem('products_v1');
+  localStorage.removeItem('session_user');
+  localStorage.removeItem('user_test'); // optional
+  location.reload();
+};
+
+/* ---------------- CHAT (gửi tới server demo) ---------------- */
+const chatMessages = document.getElementById('chatMessages');
+document.getElementById('sendChat').onclick = ()=>{
+  const msg = (document.getElementById('chatInput').value||'').trim();
+  if(!msg) return;
+  appendChat('Bạn', msg);
+  // demo send to backend if exists
+  fetch('http://localhost:8080/chat', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ message: msg })
+  }).catch(()=>{/* ignore */});
+  document.getElementById('chatInput').value='';
+};
+function appendChat(who, text){
+  const d = document.createElement('div');
+  d.innerHTML = `<b>${escapeHtml(who)}:</b> ${escapeHtml(text)}`;
+  chatMessages.appendChild(d);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+/* ---------------- small util ---------------- */
+function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* ---------------- on load ---------------- */
+applyFilters(); renderCart(); updateUserArea(); loadAdminList();
+</script>
+</body>
+</html>
+
