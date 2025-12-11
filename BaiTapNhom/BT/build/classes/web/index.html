@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cửa hàng Quần Áo</title>
+<style>
+    body { font-family: Arial, sans-serif; margin:0; background:#f5f5f5; }
+    header { background:#3f51b5; color:white; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; }
+    header h1 { margin:0; font-size:24px; }
+    #products { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:20px; padding:20px; }
+    .product { background:white; padding:15px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; flex-direction:column; }
+    .product img { width:100%; height:200px; object-fit:cover; border-radius:5px; }
+    .product h3 { margin:10px 0 5px; font-size:18px; }
+    .product p { margin:0 0 10px; font-weight:bold; color:#3f51b5; }
+    .product button { background:#3f51b5; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; }
+    #cart { position:fixed; top:70px; right:0; width:300px; background:white; height:calc(100% - 70px); padding:20px; box-shadow:-2px 0 5px rgba(0,0,0,0.1); overflow-y:auto; }
+    #cart h2 { margin-top:0; }
+    #cart ul { list-style:none; padding:0; margin:0; }
+    #cart li { display:flex; justify-content:space-between; margin-bottom:10px; }
+    #cart li button { background:#f44336; padding:2px 5px; border:none; color:white; border-radius:3px; cursor:pointer; }
+    #checkout { margin-top:10px; background:#4CAF50; width:100%; padding:10px; color:white; border:none; border-radius:5px; cursor:pointer; }
+    #chat { position:fixed; bottom:0; right:0; width:300px; background:white; padding:10px; box-shadow:-2px -2px 5px rgba(0,0,0,0.1); }
+    #chat input { width:70%; padding:5px; }
+    #chat button { width:28%; padding:5px; background:#2196F3; color:white; border:none; border-radius:3px; cursor:pointer; }
+    #chatMessages { max-height:150px; overflow-y:auto; border:1px solid #ddd; margin-bottom:5px; padding:5px; font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+    <h1>Cửa hàng Quần Áo</h1>
+</header>
+
+<div id="products"></div>
+
+<div id="cart">
+    <h2>Giỏ hàng</h2>
+    <ul id="cartItems"></ul>
+    <p>Tổng: <span id="total">0</span> đ</p>
+    <button id="checkout">Thanh toán</button>
+</div>
+
+<div id="chat">
+    <div id="chatMessages"></div>
+    <input type="text" id="chatInput" placeholder="Nhập tin nhắn...">
+    <button id="sendChat">Gửi</button>
+</div>
+
+<script>
+// 27 sản phẩm quần áo
+const products = [
+    {id:'c1', name:'Áo thun nam trắng', price:150000, img:'https://via.placeholder.com/200x250?text=Ao+Thun+Nam'},
+    {id:'c2', name:'Áo thun nữ form rộng', price:160000, img:'https://via.placeholder.com/200x250?text=Ao+Thun+Nu'},
+    {id:'c3', name:'Áo sơ mi nam', price:250000, img:'https://via.placeholder.com/200x250?text=So+Mi+Nam'},
+    {id:'c4', name:'Áo sơ mi nữ', price:240000, img:'https://via.placeholder.com/200x250?text=So+Mi+Nu'},
+    {id:'c5', name:'Áo hoodie nam', price:350000, img:'https://via.placeholder.com/200x250?text=Hoodie+Nam'},
+    {id:'c6', name:'Áo hoodie nữ', price:340000, img:'https://via.placeholder.com/200x250?text=Hoodie+Nu'},
+    {id:'c7', name:'Áo khoác jean nam', price:420000, img:'https://via.placeholder.com/200x250?text=Jean+Nam'},
+    {id:'c8', name:'Áo khoác jean nữ', price:410000, img:'https://via.placeholder.com/200x250?text=Jean+Nu'},
+    {id:'c9', name:'Áo len nữ', price:320000, img:'https://via.placeholder.com/200x250?text=Ao+Len+Nu'},
+    {id:'c10', name:'Quần jean nam', price:300000, img:'https://via.placeholder.com/200x250?text=Quan+Jean+Nam'},
+    {id:'c11', name:'Quần jean nữ', price:290000, img:'https://via.placeholder.com/200x250?text=Quan+Jean+Nu'},
+    {id:'c12', name:'Quần short nam', price:180000, img:'https://via.placeholder.com/200x250?text=Short+Nam'},
+    {id:'c13', name:'Quần short nữ', price:170000, img:'https://via.placeholder.com/200x250?text=Short+Nu'},
+    {id:'c14', name:'Quần tây nam', price:350000, img:'https://via.placeholder.com/200x250?text=Quan+Tay+Nam'},
+    {id:'c15', name:'Quần kaki nữ', price:330000, img:'https://via.placeholder.com/200x250?text=Kaki+Nu'},
+    {id:'c16', name:'Váy ôm sang trọng', price:400000, img:'https://via.placeholder.com/200x250?text=Vay+Om'},
+    {id:'c17', name:'Váy xòe dễ thương', price:380000, img:'https://via.placeholder.com/200x250?text=Vay+Xoe'},
+    {id:'c18', name:'Set đồ nữ cá tính', price:450000, img:'https://via.placeholder.com/200x250?text=Set+Nu'},
+    {id:'c19', name:'Vest nam cao cấp', price:850000, img:'https://via.placeholder.com/200x250?text=Vest+Nam'},
+    {id:'c20', name:'Đầm dự tiệc sang trọng', price:520000, img:'https://via.placeholder.com/200x250?text=Dress'},
+    {id:'c21', name:'Áo croptop nữ', price:160000, img:'https://via.placeholder.com/200x250?text=Croptop'},
+    {id:'c22', name:'Áo khoác gió nam', price:370000, img:'https://via.placeholder.com/200x250?text=Khoac+Gio'},
+    {id:'c23', name:'Áo khoác gió nữ', price:360000, img:'https://via.placeholder.com/200x250?text=Khoac+Gio+Nu'},
+    {id:'c24', name:'Áo ba lỗ thể thao nam', price:120000, img:'https://via.placeholder.com/200x250?text=Ba+Lo+Nam'},
+    {id:'c25', name:'Áo thể thao nữ', price:130000, img:'https://via.placeholder.com/200x250?text=Ao+The+Thao+Nu'},
+    {id:'c26', name:'Váy maxi đi biển', price:450000, img:'https://via.placeholder.com/200x250?text=Vay+Maxi'},
+    {id:'c27', name:'Quần jogger nam', price:210000, img:'https://via.placeholder.com/200x250?text=Jogger+Nam'}
+];
+
+// Giỏ hàng
+let cart = [];
+
+// Hiển thị sản phẩm
+const productsDiv = document.getElementById('products');
+products.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'product';
+    div.innerHTML = `<img src="${p.img}"><h3>${p.name}</h3><p>${p.price.toLocaleString()} đ</p><button>Thêm vào giỏ</button>`;
+    div.querySelector('button').onclick = () => addToCart(p);
+    productsDiv.appendChild(div);
+});
+
+// Thêm sản phẩm vào giỏ
+function addToCart(product){
+    const exist = cart.find(c=>c.id===product.id);
+    if(exist) exist.qty++;
+    else cart.push({id:product.id,name:product.name,price:product.price,qty:1});
+    renderCart();
+}
+
+// Xóa sản phẩm khỏi giỏ
+function removeFromCart(id){
+    cart = cart.filter(c=>c.id!==id);
+    renderCart();
+}
+
+// Hiển thị giỏ hàng
+function renderCart(){
+    const ul = document.getElementById('cartItems');
+    ul.innerHTML='';
+    let total=0;
+    cart.forEach(item=>{
+        const li = document.createElement('li');
+        li.innerHTML=`${item.name} x${item.qty} <span>${(item.price*item.qty).toLocaleString()} đ</span> <button onclick="removeFromCart('${item.id}')">x</button>`;
+        ul.appendChild(li);
+        total += item.price*item.qty;
+    });
+    document.getElementById('total').innerText=total.toLocaleString();
+}
+
+// Thanh toán
+document.getElementById('checkout').onclick = ()=>{
+    if(cart.length===0){ alert('Giỏ hàng trống'); return; }
+    fetch('http://localhost:8080/checkout',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({userId:'u1', cart})
+    }).then(res=>{
+        if(res.ok){ alert('Thanh toán thành công'); cart=[]; renderCart(); }
+        else alert('Lỗi thanh toán');
+    });
+}
+
+// Chat
+const chatMessages = document.getElementById('chatMessages');
+document.getElementById('sendChat').onclick = ()=>{
+    const msg = document.getElementById('chatInput').value;
+    if(msg.trim()==='') return;
+    chatMessages.innerHTML += `<div><b>Bạn:</b> ${msg}</div>`;
+    fetch('http://localhost:8080/chat',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({message:msg})
+    });
+    document.getElementById('chatInput').value='';
+}
+</script>
+</body>
+</html>
